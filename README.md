@@ -93,6 +93,8 @@ Crush your to-do list. A task tracking app with animated emojis, customizable th
 | Auth | bcryptjs + jose (JWT in httpOnly cookies) |
 | Database | SQLite via Prisma ORM |
 | Language | TypeScript |
+| Unit Tests | Vitest |
+| E2E Tests | Playwright (Chromium) |
 
 ## Getting Started
 
@@ -118,6 +120,19 @@ npm run start
 Open http://localhost:3000, create an account, and start tracking.
 
 > **Note:** Checkmate uses a local SQLite file (`prisma/dev.db`) for storage. No external database server is required — all data lives in a single file on disk.
+
+## Testing
+
+```bash
+npm test              # Run all tests (unit + E2E)
+npm run test:unit     # Vitest unit tests only (26 tests)
+npm run test:e2e      # Playwright E2E tests only (21 tests)
+npx vitest            # Unit tests in watch mode
+```
+
+**Unit tests** (Vitest) cover the lib layer — password hashing/JWT, emoji matching logic, and session cookie builders.
+
+**E2E tests** (Playwright) cover full user flows — registration, login, list CRUD, task CRUD, theme switching, and logout. E2E tests use a separate SQLite database (`prisma/test.db`) that is reset before each run.
 
 ## Project Structure
 
@@ -148,4 +163,10 @@ checkmate/
 │       ├── ConfirmDialog.tsx    # Themed delete confirmation dialog
 │       ├── CreateListForm.tsx   # New list input
 │       └── CreateTaskForm.tsx   # New task input
+├── e2e/                         # Playwright E2E tests
+│   ├── helpers/auth.ts          # Shared register/login helpers
+│   ├── auth.spec.ts             # Auth flow tests
+│   ├── lists.spec.ts            # List CRUD tests
+│   ├── tasks.spec.ts            # Task CRUD tests
+│   └── theme.spec.ts            # Theme switching tests
 ```

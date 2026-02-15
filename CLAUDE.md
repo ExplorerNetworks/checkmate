@@ -15,6 +15,12 @@ npm run build            # Production build
 npm run start            # Start production server
 npm run lint             # ESLint
 
+# Testing
+npm run test             # Run all tests (unit + E2E)
+npm run test:unit        # Vitest unit tests only
+npm run test:e2e         # Playwright E2E tests only (starts dev server)
+npx vitest               # Unit tests in watch mode
+
 # Database
 npx prisma migrate dev   # Apply migrations (creates SQLite dev.db)
 npx prisma db push       # Push schema changes without migration
