@@ -109,9 +109,15 @@ npx prisma migrate dev
 
 # Run dev server
 npm run dev
+
+# Or build and run in production mode
+npm run build
+npm run start
 ```
 
 Open http://localhost:3000, create an account, and start tracking.
+
+> **Note:** Checkmate uses a local SQLite file (`prisma/dev.db`) for storage. No external database server is required — all data lives in a single file on disk.
 
 ## Project Structure
 
@@ -139,6 +145,7 @@ checkmate/
 │       ├── AuthForm.tsx         # Login/register form
 │       ├── TaskListCard.tsx     # Dashboard list card
 │       ├── TaskItem.tsx         # Task row with checkbox
+│       ├── ConfirmDialog.tsx    # Themed delete confirmation dialog
 │       ├── CreateListForm.tsx   # New list input
 │       └── CreateTaskForm.tsx   # New task input
 ```
