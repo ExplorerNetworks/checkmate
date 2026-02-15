@@ -11,6 +11,7 @@ import {
   Box,
   LinearProgress,
   Chip,
+  useTheme,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { matchEmoji } from "@/lib/emoji";
@@ -29,6 +30,9 @@ interface TaskListCardProps {
 
 export default function TaskListCard({ list, onDelete }: TaskListCardProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const theme = useTheme();
+  const primary = theme.palette.primary.main;
+  const isDark = theme.palette.mode === "dark";
   const progress =
     list.taskCount > 0 ? (list.completedCount / list.taskCount) * 100 : 0;
   const emojiMatch = matchEmoji(list.name, "list");
@@ -41,13 +45,36 @@ export default function TaskListCard({ list, onDelete }: TaskListCardProps) {
 
   return (
     <Card
-      elevation={1}
+      elevation={0}
       sx={{
-        transition: "box-shadow 0.2s, transform 0.2s",
-        "&:hover": { elevation: 4, transform: "translateY(-2px)", boxShadow: 4 },
+        position: "relative",
+        overflow: "visible",
+        transition: "transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease",
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: `0 12px 40px ${isDark ? `${primary}18` : `${primary}15`}, 0 4px 12px rgba(0,0,0,${isDark ? 0.3 : 0.08})`,
+        },
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: -1,
+          borderRadius: "15px",
+          padding: "1px",
+          background: `linear-gradient(135deg, ${primary}40, transparent 60%)`,
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          opacity: 0,
+          transition: "opacity 0.25s ease",
+          pointerEvents: "none",
+        },
+        "&:hover::before": {
+          opacity: 1,
+        },
       }}
     >
-      <CardActionArea component={Link} href={`/dashboard/${list.id}`}>
+      <CardActionArea component={Link} href={`/dashboard/${list.id}`} sx={{ borderRadius: "inherit" }}>
         <CardContent sx={{ pb: 1.5 }}>
           <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1, minWidth: 0 }}>
@@ -59,13 +86,18 @@ export default function TaskListCard({ list, onDelete }: TaskListCardProps) {
             <IconButton
               size="small"
               onClick={handleDelete}
-              sx={{ ml: 1, mt: -0.5, color: "text.disabled", "&:hover": { color: "error.main" } }}
+              sx={{
+                ml: 1,
+                mt: -0.5,
+                color: "text.disabled",
+                "&:hover": { color: "error.main" },
+              }}
             >
               <DeleteOutlineIcon fontSize="small" />
             </IconButton>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5 }}>
             {list.taskCount === 0 ? (
               <Typography variant="body2" color="text.secondary">
                 No tasks yet
@@ -82,7 +114,6 @@ export default function TaskListCard({ list, onDelete }: TaskListCardProps) {
                   <LinearProgress
                     variant="determinate"
                     value={progress}
-                    sx={{ height: 6, borderRadius: 3 }}
                   />
                 </Box>
               </>

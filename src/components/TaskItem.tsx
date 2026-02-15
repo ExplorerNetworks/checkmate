@@ -7,6 +7,7 @@ import {
   Typography,
   IconButton,
   TextField,
+  useTheme,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
@@ -28,6 +29,8 @@ export default function TaskItem({ task, listId, onUpdated }: TaskItemProps) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const theme = useTheme();
+  const primary = theme.palette.primary.main;
   const emojiMatch = matchEmoji(task.text);
 
   async function handleToggle() {
@@ -79,8 +82,11 @@ export default function TaskItem({ task, listId, onUpdated }: TaskItemProps) {
         gap: 1,
         py: 0.75,
         px: 1,
-        borderRadius: 1,
-        "&:hover": { bgcolor: "action.hover" },
+        borderRadius: 2,
+        transition: "background-color 0.2s ease",
+        "&:hover": {
+          bgcolor: "action.hover",
+        },
         "&:hover .task-actions": { opacity: 1 },
       }}
     >
@@ -88,7 +94,13 @@ export default function TaskItem({ task, listId, onUpdated }: TaskItemProps) {
         checked={task.completed}
         onChange={handleToggle}
         size="small"
-        sx={{ p: 0.5 }}
+        sx={{
+          p: 0.5,
+          color: `${primary}60`,
+          "&.Mui-checked": {
+            color: primary,
+          },
+        }}
       />
 
       {!editing && (
@@ -118,6 +130,7 @@ export default function TaskItem({ task, listId, onUpdated }: TaskItemProps) {
             cursor: "pointer",
             textDecoration: task.completed ? "line-through" : "none",
             color: task.completed ? "text.disabled" : "text.primary",
+            transition: "color 0.2s ease, text-decoration 0.2s ease",
           }}
           onClick={() => {
             setEditing(true);
@@ -130,7 +143,11 @@ export default function TaskItem({ task, listId, onUpdated }: TaskItemProps) {
 
       <Box
         className="task-actions"
-        sx={{ display: "flex", opacity: 0, transition: "opacity 0.15s" }}
+        sx={{
+          display: "flex",
+          opacity: 0,
+          transition: "opacity 0.2s ease",
+        }}
       >
         <IconButton
           size="small"

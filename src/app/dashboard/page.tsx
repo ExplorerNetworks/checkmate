@@ -11,6 +11,7 @@ import {
   Box,
   IconButton,
   CircularProgress,
+  useTheme,
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -31,9 +32,13 @@ interface TaskList {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const theme = useTheme();
   const { mode, toggleMode } = useThemeMode();
   const [lists, setLists] = useState<TaskList[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const primary = theme.palette.primary.main;
+  const isDark = mode === "dark";
 
   const fetchLists = useCallback(async () => {
     try {
@@ -62,8 +67,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <AppBar position="sticky" elevation={1} sx={{ bgcolor: "background.paper" }}>
+    <Box sx={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
+      {/* Animated gradient background */}
+      <Box
+        className="animated-bg"
+        sx={{
+          background: isDark
+            ? `radial-gradient(ellipse at 15% 30%, ${primary}12 0%, transparent 50%),
+               radial-gradient(ellipse at 85% 70%, rgba(139,92,246,0.06) 0%, transparent 50%),
+               #06080f`
+            : `radial-gradient(ellipse at 15% 30%, ${primary}15 0%, transparent 50%),
+               radial-gradient(ellipse at 85% 70%, rgba(139,92,246,0.08) 0%, transparent 50%),
+               #f0f4ff`,
+        }}
+      />
+
+      <AppBar position="sticky" elevation={0}>
         <Toolbar>
           <CheckBoxOutlinedIcon sx={{ mr: 1, color: "primary.main" }} />
           <Typography
@@ -90,8 +109,8 @@ export default function DashboardPage() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Box sx={{ mb: 4 }}>
+      <Container maxWidth="md" sx={{ py: 4, position: "relative" }}>
+        <Box sx={{ mb: 4 }} className="fade-in-up">
           <CreateListForm onCreated={fetchLists} />
         </Box>
 
@@ -100,7 +119,7 @@ export default function DashboardPage() {
             <CircularProgress />
           </Box>
         ) : lists.length === 0 ? (
-          <Box sx={{ textAlign: "center", py: 8 }}>
+          <Box sx={{ textAlign: "center", py: 8 }} className="fade-in-up">
             <AssignmentIcon sx={{ fontSize: 64, color: "text.disabled", mb: 2 }} />
             <Typography color="text.secondary">
               No task lists yet. Create one above!
@@ -108,6 +127,7 @@ export default function DashboardPage() {
           </Box>
         ) : (
           <Box
+            className="stagger-children"
             sx={{
               display: "grid",
               gridTemplateColumns: {
@@ -115,7 +135,7 @@ export default function DashboardPage() {
                 sm: "1fr 1fr",
                 md: "1fr 1fr 1fr",
               },
-              gap: 2,
+              gap: 2.5,
             }}
           >
             {lists.map((list) => (

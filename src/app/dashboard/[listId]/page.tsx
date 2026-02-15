@@ -17,6 +17,7 @@ import {
   CircularProgress,
   Divider,
   Chip,
+  useTheme,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckBoxOutlinedIcon from "@mui/icons-material/CheckBoxOutlined";
@@ -50,7 +51,11 @@ interface TaskListData {
 export default function TaskListPage() {
   const params = useParams();
   const listId = params.listId as string;
+  const theme = useTheme();
   const { mode, toggleMode } = useThemeMode();
+
+  const primary = theme.palette.primary.main;
+  const isDark = mode === "dark";
 
   const [list, setList] = useState<TaskListData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,8 +149,22 @@ export default function TaskListPage() {
   const listEmoji = matchEmoji(list.name, "list");
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <AppBar position="sticky" elevation={1} sx={{ bgcolor: "background.paper" }}>
+    <Box sx={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
+      {/* Animated gradient background */}
+      <Box
+        className="animated-bg"
+        sx={{
+          background: isDark
+            ? `radial-gradient(ellipse at 30% 20%, ${primary}12 0%, transparent 50%),
+               radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.06) 0%, transparent 50%),
+               #06080f`
+            : `radial-gradient(ellipse at 30% 20%, ${primary}15 0%, transparent 50%),
+               radial-gradient(ellipse at 70% 80%, rgba(139,92,246,0.08) 0%, transparent 50%),
+               #f0f4ff`,
+        }}
+      />
+
+      <AppBar position="sticky" elevation={0}>
         <Toolbar>
           <IconButton component={Link} href="/dashboard" sx={{ mr: 1 }}>
             <ArrowBackIcon />
@@ -166,9 +185,9 @@ export default function TaskListPage() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="sm" sx={{ py: 4 }}>
+      <Container maxWidth="sm" sx={{ py: 4, position: "relative" }}>
         {/* List name header */}
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 3 }} className="fade-in-up">
           {editingName ? (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <TextField
@@ -220,12 +239,32 @@ export default function TaskListPage() {
         </Box>
 
         {/* Add task form */}
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 3 }} className="fade-in-up">
           <CreateTaskForm listId={listId} onCreated={fetchList} />
         </Box>
 
         {/* Task list */}
-        <Card elevation={1}>
+        <Card
+          elevation={0}
+          className="fade-in-up"
+          sx={{
+            position: "relative",
+            overflow: "visible",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              inset: -1,
+              borderRadius: "15px",
+              padding: "1px",
+              background: `linear-gradient(180deg, ${primary}30, transparent 60%)`,
+              WebkitMask:
+                "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+              WebkitMaskComposite: "xor",
+              maskComposite: "exclude",
+              pointerEvents: "none",
+            },
+          }}
+        >
           <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
             {list.tasks.length === 0 ? (
               <Box sx={{ textAlign: "center", py: 6 }}>
@@ -242,7 +281,9 @@ export default function TaskListPage() {
                     listId={listId}
                     onUpdated={fetchList}
                   />
-                  {i < list.tasks.length - 1 && <Divider />}
+                  {i < list.tasks.length - 1 && (
+                    <Divider sx={{ opacity: 0.5 }} />
+                  )}
                 </Box>
               ))
             )}

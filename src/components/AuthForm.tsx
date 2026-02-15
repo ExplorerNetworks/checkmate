@@ -13,6 +13,7 @@ import {
   Alert,
   IconButton,
   InputAdornment,
+  useTheme,
 } from "@mui/material";
 import {
   Visibility,
@@ -26,6 +27,7 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 
 export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
+  const theme = useTheme();
   const { mode: themeMode, toggleMode } = useThemeMode();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -34,6 +36,8 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [loading, setLoading] = useState(false);
 
   const isLogin = mode === "login";
+  const primary = theme.palette.primary.main;
+  const isDark = themeMode === "dark";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,18 +73,88 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        bgcolor: "background.default",
         position: "relative",
+        overflow: "hidden",
+        bgcolor: "background.default",
       }}
     >
-      <Box sx={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 0.5 }}>
+      {/* Animated gradient background */}
+      <Box
+        className="animated-bg"
+        sx={{
+          background: isDark
+            ? `radial-gradient(ellipse at 20% 50%, ${primary}15 0%, transparent 50%),
+               radial-gradient(ellipse at 80% 20%, ${primary}10 0%, transparent 50%),
+               radial-gradient(ellipse at 50% 80%, rgba(139,92,246,0.08) 0%, transparent 50%),
+               #06080f`
+            : `radial-gradient(ellipse at 20% 50%, ${primary}18 0%, transparent 50%),
+               radial-gradient(ellipse at 80% 20%, ${primary}12 0%, transparent 50%),
+               radial-gradient(ellipse at 50% 80%, rgba(139,92,246,0.1) 0%, transparent 50%),
+               #f0f4ff`,
+        }}
+      />
+
+      {/* Floating orbs */}
+      <Box
+        sx={{
+          position: "fixed",
+          width: 300,
+          height: 300,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${primary}20, transparent 70%)`,
+          top: "10%",
+          left: "10%",
+          filter: "blur(60px)",
+          animation: "float 8s ease-in-out infinite",
+          pointerEvents: "none",
+        }}
+      />
+      <Box
+        sx={{
+          position: "fixed",
+          width: 250,
+          height: 250,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, rgba(139,92,246,0.15), transparent 70%)`,
+          bottom: "15%",
+          right: "10%",
+          filter: "blur(60px)",
+          animation: "float 10s ease-in-out infinite reverse",
+          pointerEvents: "none",
+        }}
+      />
+
+      <Box sx={{ position: "absolute", top: 12, right: 12, display: "flex", gap: 0.5, zIndex: 10 }}>
         <ThemePicker />
         <IconButton onClick={toggleMode}>
           {themeMode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
         </IconButton>
       </Box>
 
-      <Card sx={{ width: "100%", maxWidth: 420, mx: 2 }} elevation={3}>
+      <Card
+        className="fade-in-up"
+        sx={{
+          width: "100%",
+          maxWidth: 420,
+          mx: 2,
+          position: "relative",
+          overflow: "visible",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            inset: -1,
+            borderRadius: "15px",
+            padding: "1px",
+            background: `linear-gradient(135deg, ${primary}50, transparent 50%, ${primary}30)`,
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+          },
+        }}
+        elevation={0}
+      >
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ textAlign: "center", mb: 3 }}>
             <Box
@@ -149,7 +223,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
             />
 
             {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
+              <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
                 {error}
               </Alert>
             )}
@@ -160,7 +234,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
               fullWidth
               disabled={loading}
               size="large"
-              sx={{ mb: 2 }}
+              sx={{ mb: 2, py: 1.2 }}
             >
               {loading
                 ? isLogin
@@ -180,7 +254,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <Link
               href={isLogin ? "/register" : "/login"}
-              style={{ color: "inherit", fontWeight: 600 }}
+              style={{ color: primary, fontWeight: 600, textDecoration: "none" }}
             >
               {isLogin ? "Sign up" : "Log in"}
             </Link>
