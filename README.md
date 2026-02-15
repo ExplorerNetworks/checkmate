@@ -22,19 +22,19 @@ Crush your to-do list. A task tracking app with animated emojis, customizable th
 |  | Login/   |  | Dashboard |  |  Task List Detail    |  |
 |  | Register |  |  (lists)  |  |  (tasks + CRUD)      |  |
 |  +----+-----+  +-----+-----+  +-----------+----------+  |
-|       |              |                     |             |
-|  +----+--------------+---------------------+----------+  |
-|  |  ThemeRegistry (MUI ThemeProvider + Context)        |  |
-|  |  - Light/Dark mode       - 5 color palettes        |  |
-|  |  AnimatedEmoji (keyword matching + CSS animations)  |  |
-|  +----------------------------+------------------------+  |
+|       |              |                     |            |
+|  +----+--------------+---------------------+----------+ |
+|  |  ThemeRegistry (MUI ThemeProvider + Context)      |  |
+|  |  - Light/Dark mode       - 5 color palettes       |  |
+|  |  AnimatedEmoji (keyword matching + CSS animations)|  |
+|  +----------------------------+------------------------+|
 +-------------------------------|--------------------------+
                                 | fetch()
 +-------------------------------|--------------------------+
 |                     Next.js Server                       |
 |                                                          |
 |  +----------------------------+------------------------+ |
-|  |            Middleware (JWT verify)                   | |
+|  |            Middleware (JWT verify)                  | |
 |  |  Public: /login, /register, /api/auth/*             | |
 |  |  Protected: everything else -> redirect /login      | |
 |  +----------------------------+------------------------+ |
@@ -68,7 +68,7 @@ Crush your to-do list. A task tracking app with animated emojis, customizable th
 +-------------------------------|--------------------------+
                                 |
 +-------------------------------|--------------------------+
-|                SQLite (prisma/dev.db)                     |
+|                SQLite (prisma/dev.db)                    |
 |                                                          |
 |  +----------+   +------------+   +--------------------+  |
 |  |   User   |-->|  TaskList  |-->|       Task         |  |
