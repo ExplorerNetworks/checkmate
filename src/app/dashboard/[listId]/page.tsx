@@ -29,6 +29,7 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import CreateTaskForm from "@/components/CreateTaskForm";
 import TaskItem from "@/components/TaskItem";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useThemeMode } from "@/components/ThemeContext";
 import ThemePicker from "@/components/ThemePicker";
 import AnimatedEmoji from "@/components/AnimatedEmoji";
@@ -55,6 +56,7 @@ export default function TaskListPage() {
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const fetchList = useCallback(async () => {
     try {
@@ -92,7 +94,6 @@ export default function TaskListPage() {
     if (!list) return;
     const completed = list.tasks.filter((t) => t.completed);
     if (completed.length === 0) return;
-    if (!confirm(`Delete ${completed.length} completed task(s)?`)) return;
 
     await Promise.all(
       completed.map((t) =>
@@ -252,13 +253,23 @@ export default function TaskListPage() {
         {completedCount > 0 && (
           <Box sx={{ mt: 2, textAlign: "right" }}>
             <Button
-              onClick={handleClearCompleted}
+              onClick={() => setConfirmOpen(true)}
               startIcon={<DeleteSweepIcon />}
               color="error"
               size="small"
             >
               Clear completed ({completedCount})
             </Button>
+            <ConfirmDialog
+              open={confirmOpen}
+              title="Clear completed tasks"
+              message={`Delete ${completedCount} completed task(s)?`}
+              onConfirm={() => {
+                setConfirmOpen(false);
+                handleClearCompleted();
+              }}
+              onCancel={() => setConfirmOpen(false)}
+            />
           </Box>
         )}
       </Container>

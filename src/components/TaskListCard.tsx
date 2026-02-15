@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -14,6 +15,7 @@ import {
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { matchEmoji } from "@/lib/emoji";
 import AnimatedEmoji from "./AnimatedEmoji";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface TaskListCardProps {
   list: {
@@ -26,6 +28,7 @@ interface TaskListCardProps {
 }
 
 export default function TaskListCard({ list, onDelete }: TaskListCardProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const progress =
     list.taskCount > 0 ? (list.completedCount / list.taskCount) * 100 : 0;
   const emojiMatch = matchEmoji(list.name, "list");
@@ -33,9 +36,7 @@ export default function TaskListCard({ list, onDelete }: TaskListCardProps) {
   function handleDelete(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (confirm(`Delete "${list.name}" and all its tasks?`)) {
-      onDelete(list.id);
-    }
+    setConfirmOpen(true);
   }
 
   return (
@@ -89,6 +90,17 @@ export default function TaskListCard({ list, onDelete }: TaskListCardProps) {
           </Box>
         </CardContent>
       </CardActionArea>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete list"
+        message={`Delete "${list.name}" and all its tasks?`}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          onDelete(list.id);
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </Card>
   );
 }

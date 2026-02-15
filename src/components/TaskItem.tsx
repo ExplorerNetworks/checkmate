@@ -12,6 +12,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import { matchEmoji } from "@/lib/emoji";
 import AnimatedEmoji from "./AnimatedEmoji";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface TaskItemProps {
   task: {
@@ -26,6 +27,7 @@ interface TaskItemProps {
 export default function TaskItem({ task, listId, onUpdated }: TaskItemProps) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const emojiMatch = matchEmoji(task.text);
 
   async function handleToggle() {
@@ -55,7 +57,6 @@ export default function TaskItem({ task, listId, onUpdated }: TaskItemProps) {
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this task?")) return;
     await fetch(`/api/lists/${listId}/tasks/${task.id}`, {
       method: "DELETE",
     });
@@ -143,12 +144,23 @@ export default function TaskItem({ task, listId, onUpdated }: TaskItemProps) {
         </IconButton>
         <IconButton
           size="small"
-          onClick={handleDelete}
+          onClick={() => setConfirmOpen(true)}
           sx={{ color: "text.secondary", "&:hover": { color: "error.main" } }}
         >
           <DeleteOutlineIcon fontSize="small" />
         </IconButton>
       </Box>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete task"
+        message="Are you sure you want to delete this task?"
+        onConfirm={() => {
+          setConfirmOpen(false);
+          handleDelete();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </Box>
   );
 }
