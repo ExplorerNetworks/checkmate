@@ -13,29 +13,31 @@ export default async function globalTeardown() {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  // Delete all tasks first (FK constraint), then task_lists
-  await supabase
-    .from("tasks")
-    .delete()
-    .neq("id", "00000000-0000-0000-0000-000000000000");
-  await supabase
-    .from("task_lists")
-    .delete()
-    .neq("id", "00000000-0000-0000-0000-000000000000");
-
-  // Delete all test users from auth.users
+  // Find test users (@test.com) and only clean up their data
   const { data: users } = await supabase.auth.admin.listUsers();
-  let deletedCount = 0;
-  if (users?.users) {
-    for (const user of users.users) {
-      if (user.email?.endsWith("@test.com")) {
-        await supabase.auth.admin.deleteUser(user.id);
-        deletedCount++;
-      }
+  const testUsers = users?.users?.filter((u) => u.email?.endsWith("@test.com")) ?? [];
+  const testUserIds = testUsers.map((u) => u.id);
+
+  if (testUserIds.length > 0) {
+    // Delete tasks belonging to test users' lists, then the lists themselves
+    const { data: lists } = await supabase
+      .from("task_lists")
+      .select("id")
+      .in("user_id", testUserIds);
+    const listIds = lists?.map((l) => l.id) ?? [];
+
+    if (listIds.length > 0) {
+      await supabase.from("tasks").delete().in("task_list_id", listIds);
+      await supabase.from("task_lists").delete().in("id", listIds);
+    }
+
+    // Delete the test users
+    for (const id of testUserIds) {
+      await supabase.auth.admin.deleteUser(id);
     }
   }
 
   console.log(
-    `E2E teardown: cleaned up ${deletedCount} test user(s) and their data`
+    `E2E teardown: cleaned up ${testUsers.length} test user(s) and their data`
   );
 }
