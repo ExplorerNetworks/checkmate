@@ -1,37 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
-
-async function getOwnedTask(
-  listId: string,
-  taskId: string,
-  userId: string
-) {
-  const list = await prisma.taskList.findUnique({
-    where: { id: listId },
-  });
-  if (!list || list.userId !== userId) return null;
-
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-  });
-  if (!task || task.taskListId !== listId) return null;
-
-  return task;
-}
+import { createClient } from "@/lib/supabase/server";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ listId: string; taskId: string }> }
 ) {
   const { listId, taskId } = await params;
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const task = await getOwnedTask(listId, taskId, user.id);
-  if (!task) {
+  // RLS ensures user can only see tasks in their own lists
+  const { data: existing } = await supabase
+    .from("tasks")
+    .select("id")
+    .eq("id", taskId)
+    .eq("task_list_id", listId)
+    .single();
+
+  if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -54,10 +43,17 @@ export async function PATCH(
       data.completed = body.completed;
     }
 
-    const updated = await prisma.task.update({
-      where: { id: taskId },
-      data,
-    });
+    const { data: updated, error } = await supabase
+      .from("tasks")
+      .update(data)
+      .eq("id", taskId)
+      .eq("task_list_id", listId)
+      .select()
+      .single();
+
+    if (error || !updated) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
     return NextResponse.json(updated);
   } catch {
@@ -73,19 +69,21 @@ export async function DELETE(
   { params }: { params: Promise<{ listId: string; taskId: string }> }
 ) {
   const { listId, taskId } = await params;
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const task = await getOwnedTask(listId, taskId, user.id);
-  if (!task) {
+  const { error } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("id", taskId)
+    .eq("task_list_id", listId);
+
+  if (error) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-
-  await prisma.task.delete({
-    where: { id: taskId },
-  });
 
   return NextResponse.json({ message: "Deleted" });
 }

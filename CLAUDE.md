@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Checkmate is a full-stack Next.js task tracker with animated emojis, customizable themes (5 color palettes + dark/light mode), and multi-list support. Built with the App Router, Material UI, Prisma/SQLite, and JWT-based authentication.
+Checkmate is a full-stack Next.js task tracker with animated emojis, customizable themes (5 color palettes + dark/light mode), and multi-list support. Built with the App Router, Material UI, Supabase (PostgreSQL + Auth), and Row Level Security.
 
 ## Commands
 
@@ -20,54 +20,57 @@ npm run test             # Run all tests (unit + E2E)
 npm run test:unit        # Vitest unit tests only
 npm run test:e2e         # Playwright E2E tests only (starts dev server)
 npx vitest               # Unit tests in watch mode
-
-# Database
-npx prisma migrate dev   # Apply migrations (creates SQLite dev.db)
-npx prisma db push       # Push schema changes without migration
 ```
 
 ## Environment Variables
 
 Required in `.env`:
-- `DATABASE_URL` — SQLite path (e.g., `"file:./dev.db"`)
-- `JWT_SECRET` — Minimum 32 characters for HMAC-SHA256
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon (public) key
+
+Optional in `.env.test` for E2E cleanup:
+- `SUPABASE_SERVICE_ROLE_KEY` — Service role key (server-side only, never expose to browser)
 
 ## Architecture
 
 ### Routing & Pages (App Router)
 
 - `/` — Redirects to `/dashboard` (authenticated) or `/login`
-- `/login`, `/register` — Public auth pages
+- `/login`, `/register` — Public auth pages (email/password)
 - `/dashboard` — Grid of task lists with progress bars
 - `/dashboard/[listId]` — Single list detail view with tasks
 
 ### API Routes (`src/app/api/`)
 
-RESTful endpoints with ownership validation on all routes:
-- `auth/register|login|logout` — POST-only auth endpoints
+RESTful endpoints with Supabase RLS enforcing ownership:
+- `auth/register|login|logout` — POST-only auth endpoints (Supabase Auth)
 - `lists/` — GET all lists, POST create list
 - `lists/[listId]/` — GET list+tasks, PATCH rename, DELETE list
 - `lists/[listId]/tasks/` — GET tasks, POST create task
 - `lists/[listId]/tasks/[taskId]/` — PATCH toggle/edit, DELETE task
 
-### Authentication
+### Authentication (Supabase Auth)
 
-- **Middleware** (`middleware.ts`) — JWT verification guard on all non-public routes
-- **Auth library** (`src/lib/auth.ts`) — bcryptjs (10 rounds) + jose JWT (HS256, 7-day expiry)
-- **Session** (`src/lib/session.ts`) — httpOnly cookie named `session`, secure in production, sameSite=lax
+- **Middleware** (`middleware.ts`) — Uses `@supabase/ssr` to refresh sessions and redirect unauthenticated users
+- **Supabase client** (`src/lib/supabase/server.ts`) — Server-side client with cookie handling for API routes
+- **Browser client** (`src/lib/supabase/client.ts`) — Client-side Supabase instance for `"use client"` components
+- Auth flow: `supabase.auth.signUp()`, `signInWithPassword()`, `signOut()`, `getUser()`
 
-### Database (Prisma + SQLite)
+### Database (Supabase PostgreSQL + RLS)
 
-Schema in `prisma/schema.prisma` with three models:
-- **User** → has many TaskLists (cascade delete)
-- **TaskList** → has many Tasks (cascade delete), belongs to User
-- **Task** → belongs to TaskList, has `text`, `completed` fields
+Schema in `supabase/schema.sql` with two tables (users managed by Supabase Auth):
+- **task_lists** → belongs to auth.users (cascade delete), has `name`, timestamps
+- **tasks** → belongs to task_list (cascade delete), has `text`, `completed`, timestamps
+
+Row Level Security: 8 policies (4 per table) enforce per-user data isolation. The anon key is safe to expose; RLS uses `auth.uid()` from the JWT to scope all queries.
 
 Path alias `@/*` maps to `./src/*`.
 
 ### Key Libraries
 
-- `src/lib/prisma.ts` — PrismaClient singleton
+- `src/lib/supabase/server.ts` — Server-side Supabase client (used in all API routes)
+- `src/lib/supabase/client.ts` — Browser-side Supabase client
+- `src/lib/supabase/middleware.ts` — Session refresh + auth guard helper
 - `src/lib/emoji.ts` — Keyword→emoji matching using emojilib with smart fallback: full text → bigram → individual word matching. Animation type is determined by Unicode range (food→wiggle, animals→wave, transport→bounce, etc.)
 
 ### Components (`src/components/`)
@@ -75,7 +78,7 @@ Path alias `@/*` maps to `./src/*`.
 All interactive components are client components (`"use client"`):
 - **ThemeContext** — React Context managing MUI theme (5 palettes: Ocean, Grape, Forest, Sunset, Cherry) + dark/light mode, persisted to localStorage
 - **AnimatedEmoji** — CSS keyframe animations (bounce, wiggle, pulse, spin, wave)
-- **AuthForm** — Shared login/register form
+- **AuthForm** — Shared login/register form (email/password)
 - **TaskListCard / TaskItem** — Dashboard cards and task rows with inline editing
 - **CreateListForm / CreateTaskForm** — Input forms for creating lists and tasks
 

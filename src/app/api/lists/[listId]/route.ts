@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const list = await prisma.taskList.findUnique({
-    where: { id: listId },
-    include: {
-      tasks: { orderBy: { createdAt: "asc" } },
-    },
-  });
+  // RLS ensures only the owner's list is returned
+  const { data: list, error } = await supabase
+    .from("task_lists")
+    .select("id, name, tasks(id, text, completed, created_at)")
+    .eq("id", listId)
+    .order("created_at", { referencedTable: "tasks", ascending: true })
+    .single();
 
-  if (!list || list.userId !== user.id) {
+  if (error || !list) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -31,17 +32,10 @@ export async function PATCH(
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const list = await prisma.taskList.findUnique({
-    where: { id: listId },
-  });
-
-  if (!list || list.userId !== user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   try {
@@ -54,10 +48,17 @@ export async function PATCH(
       );
     }
 
-    const updated = await prisma.taskList.update({
-      where: { id: listId },
-      data: { name: name.trim().slice(0, 100) },
-    });
+    // RLS ensures user can only update their own lists
+    const { data: updated, error } = await supabase
+      .from("task_lists")
+      .update({ name: name.trim().slice(0, 100) })
+      .eq("id", listId)
+      .select()
+      .single();
+
+    if (error || !updated) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
     return NextResponse.json(updated);
   } catch {
@@ -73,22 +74,22 @@ export async function DELETE(
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const list = await prisma.taskList.findUnique({
-    where: { id: listId },
-  });
+  // RLS ensures user can only delete their own lists
+  // CASCADE on FK will delete associated tasks
+  const { error } = await supabase
+    .from("task_lists")
+    .delete()
+    .eq("id", listId);
 
-  if (!list || list.userId !== user.id) {
+  if (error) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-
-  await prisma.taskList.delete({
-    where: { id: listId },
-  });
 
   return NextResponse.json({ message: "Deleted" });
 }

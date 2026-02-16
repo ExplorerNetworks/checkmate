@@ -147,6 +147,11 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
         MuiTextField: {
           styleOverrides: {
             root: {
+              "& .MuiInputLabel-root": {
+                backgroundColor: isDark ? "#111827" : "#ffffff",
+                paddingInline: "4px",
+                borderRadius: 4,
+              },
               "& .MuiOutlinedInput-root": {
                 borderRadius: 12,
                 backdropFilter: "blur(8px)",

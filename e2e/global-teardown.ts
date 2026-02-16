@@ -1,12 +1,12 @@
 const { createClient } = require("@supabase/supabase-js");
 
-module.exports = async function globalSetup() {
+module.exports = async function globalTeardown() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
     console.warn(
-      "Supabase env vars not set for E2E cleanup. Skipping test data cleanup."
+      "Supabase env vars not set. Skipping test data cleanup."
     );
     return;
   }
@@ -14,7 +14,6 @@ module.exports = async function globalSetup() {
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
   // Delete all tasks first (FK constraint), then task_lists
-  // Service role key bypasses RLS
   await supabase
     .from("tasks")
     .delete()
@@ -24,15 +23,19 @@ module.exports = async function globalSetup() {
     .delete()
     .neq("id", "00000000-0000-0000-0000-000000000000");
 
-  // Delete test users from auth.users via admin API
+  // Delete all test users from auth.users
   const { data: users } = await supabase.auth.admin.listUsers();
+  let deletedCount = 0;
   if (users?.users) {
     for (const user of users.users) {
       if (user.email?.endsWith("@test.com")) {
         await supabase.auth.admin.deleteUser(user.id);
+        deletedCount++;
       }
     }
   }
 
-  console.log("E2E test data cleaned up");
+  console.log(
+    `E2E teardown: cleaned up ${deletedCount} test user(s) and their data`
+  );
 };

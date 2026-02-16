@@ -1,48 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { comparePassword, signToken } from "@/lib/auth";
-import { createSessionCookie } from "@/lib/session";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json();
+    const { email, password } = await request.json();
 
-    if (!username || !password) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: "Username and password are required" },
+        { error: "Email and password are required" },
         { status: 400 }
       );
     }
 
-    const normalizedUsername = username.trim().toLowerCase();
+    const cookieStore = await cookies();
+    const pendingCookies: { name: string; value: string; options?: Record<string, unknown> }[] = [];
 
-    const user = await prisma.user.findUnique({
-      where: { username: normalizedUsername },
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            pendingCookies.push(...cookiesToSet);
+          },
+        },
+      }
+    );
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
     });
 
-    if (!user) {
+    if (error) {
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
       );
     }
-
-    const valid = await comparePassword(password, user.password);
-
-    if (!valid) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
-    }
-
-    const token = await signToken({
-      userId: user.id,
-      username: user.username,
-    });
 
     const response = NextResponse.json({ message: "Logged in" });
-    response.cookies.set(createSessionCookie(token));
+
+    // Apply Supabase auth cookies to the response
+    for (const cookie of pendingCookies) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options as Record<string, unknown>);
+    }
+
     return response;
   } catch {
     return NextResponse.json(

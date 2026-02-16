@@ -29,7 +29,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const theme = useTheme();
   const { mode: themeMode, toggleMode } = useThemeMode();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -48,7 +48,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
       const res = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
@@ -185,13 +185,13 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
 
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
-              label="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               fullWidth
               required
               size="small"
-              slotProps={{ htmlInput: { minLength: 3 } }}
               sx={{ mb: 2 }}
             />
 

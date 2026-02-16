@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { hashPassword, signToken } from "@/lib/auth";
-import { createSessionCookie } from "@/lib/session";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json();
+    const { email, password } = await request.json();
 
-    if (
-      !username ||
-      typeof username !== "string" ||
-      username.trim().length < 3
-    ) {
+    if (!email || typeof email !== "string" || !email.includes("@")) {
       return NextResponse.json(
-        { error: "Username must be at least 3 characters" },
+        { error: "Valid email is required" },
         { status: 400 }
       );
     }
@@ -29,38 +24,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedUsername = username.trim().toLowerCase();
+    const cookieStore = await cookies();
+    const pendingCookies: { name: string; value: string; options?: Record<string, unknown> }[] = [];
 
-    const existing = await prisma.user.findUnique({
-      where: { username: normalizedUsername },
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            pendingCookies.push(...cookiesToSet);
+          },
+        },
+      }
+    );
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
     });
 
-    if (existing) {
+    if (error) {
       return NextResponse.json(
-        { error: "Username already taken" },
-        { status: 409 }
+        { error: error.message },
+        { status: 400 }
       );
     }
 
-    const hashedPassword = await hashPassword(password);
-
-    const user = await prisma.user.create({
-      data: {
-        username: normalizedUsername,
-        password: hashedPassword,
-      },
-    });
-
-    const token = await signToken({
-      userId: user.id,
-      username: user.username,
-    });
+    // When email confirmation is disabled, Supabase returns a fake user
+    // with empty identities for duplicate emails instead of an error
+    if (data.user && data.user.identities?.length === 0) {
+      return NextResponse.json(
+        { error: "Email already registered" },
+        { status: 409 }
+      );
+    }
 
     const response = NextResponse.json(
       { message: "Account created" },
       { status: 201 }
     );
-    response.cookies.set(createSessionCookie(token));
+
+    // Apply Supabase auth cookies to the response
+    for (const cookie of pendingCookies) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options as Record<string, unknown>);
+    }
+
     return response;
   } catch {
     return NextResponse.json(

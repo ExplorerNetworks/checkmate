@@ -1,35 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const lists = await prisma.taskList.findMany({
-    where: { userId: user.id },
-    include: {
-      _count: { select: { tasks: true } },
-      tasks: { where: { completed: true }, select: { id: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  // RLS ensures only this user's lists are returned
+  const { data: lists, error } = await supabase
+    .from("task_lists")
+    .select("id, name, created_at, tasks(id, completed)")
+    .order("created_at", { ascending: false });
 
-  const result = lists.map((list) => ({
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const result = (lists ?? []).map((list) => ({
     id: list.id,
     name: list.name,
-    createdAt: list.createdAt,
-    taskCount: list._count.tasks,
-    completedCount: list.tasks.length,
+    createdAt: list.created_at,
+    taskCount: list.tasks?.length ?? 0,
+    completedCount:
+      list.tasks?.filter((t: { completed: boolean }) => t.completed).length ??
+      0,
   }));
 
   return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -46,12 +50,15 @@ export async function POST(request: NextRequest) {
 
     const trimmedName = name.trim().slice(0, 100);
 
-    const list = await prisma.taskList.create({
-      data: {
-        name: trimmedName,
-        userId: user.id,
-      },
-    });
+    const { data: list, error } = await supabase
+      .from("task_lists")
+      .insert({ name: trimmedName, user_id: user.id })
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json(list, { status: 201 });
   } catch {

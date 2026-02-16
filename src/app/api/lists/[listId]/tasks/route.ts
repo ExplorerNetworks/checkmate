@@ -1,34 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
-
-async function getOwnedList(listId: string, userId: string) {
-  const list = await prisma.taskList.findUnique({
-    where: { id: listId },
-  });
-  if (!list || list.userId !== userId) return null;
-  return list;
-}
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const list = await getOwnedList(listId, user.id);
+  // Verify the list exists and belongs to user (via RLS)
+  const { data: list } = await supabase
+    .from("task_lists")
+    .select("id")
+    .eq("id", listId)
+    .single();
+
   if (!list) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const tasks = await prisma.task.findMany({
-    where: { taskListId: list.id },
-    orderBy: { createdAt: "asc" },
-  });
+  const { data: tasks, error } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("task_list_id", listId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json(tasks);
 }
@@ -38,12 +41,19 @@ export async function POST(
   { params }: { params: Promise<{ listId: string }> }
 ) {
   const { listId } = await params;
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const list = await getOwnedList(listId, user.id);
+  // Verify list exists and belongs to user (via RLS)
+  const { data: list } = await supabase
+    .from("task_lists")
+    .select("id")
+    .eq("id", listId)
+    .single();
+
   if (!list) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -58,12 +68,16 @@ export async function POST(
       );
     }
 
-    const task = await prisma.task.create({
-      data: {
-        text: text.trim(),
-        taskListId: list.id,
-      },
-    });
+    // RLS INSERT policy checks that the task_list belongs to auth.uid()
+    const { data: task, error } = await supabase
+      .from("tasks")
+      .insert({ text: text.trim(), task_list_id: listId })
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json(task, { status: 201 });
   } catch {
