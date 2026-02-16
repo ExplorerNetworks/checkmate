@@ -6,14 +6,14 @@ Crush your to-do list. A secure auth, task tracking app with animated emojis, cu
 
 ## Features
 
-- **Multi-list management** -- Create, rename, and delete task lists
-- **Task CRUD** -- Add, check/uncheck, inline edit, and delete tasks
-- **Animated emojis** -- Auto-matched to task/list content (200+ keywords)
-- **5 color themes** -- Ocean, Grape, Forest, Sunset, Cherry
-- **Light/Dark mode** -- Persisted preference with system default detection
-- **User accounts** -- Email/password auth via Supabase Auth
 - **Secure by design** -- Passwords are hashed by Supabase Auth and never stored or visible in plaintext, not even to database admins
 - **Supabase PostgreSQL** -- Cloud-hosted database with Row Level Security ensuring per-user data isolation
+- **User accounts** -- Email/password auth via Supabase Auth
+- **Multi-list management** -- Create, rename, and delete task lists
+- **Task CRUD** -- Add, check/uncheck, inline edit, and delete tasks
+- **Animated emojis** -- Auto-matched to task/list content
+- **Light/Dark mode** -- Persisted preference with system default detection
+- **5 color themes** -- Ocean, Grape, Forest, Sunset, Cherry
 
 ## Architecture
 
