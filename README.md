@@ -1,6 +1,6 @@
 # Checkmate
 
-Crush your to-do list. A task tracking app with animated emojis, customizable themes, and multi-list support.
+Crush your to-do list. A secure auth, task tracking app with animated emojis, customizable themes, and multi-list support!
 
 ## Features
 
@@ -10,7 +10,8 @@ Crush your to-do list. A task tracking app with animated emojis, customizable th
 - **5 color themes** -- Ocean, Grape, Forest, Sunset, Cherry
 - **Light/Dark mode** -- Persisted preference with system default detection
 - **User accounts** -- Email/password auth via Supabase Auth
-- **Supabase PostgreSQL** -- Cloud-hosted database with Row Level Security
+- **Secure by design** -- Passwords are hashed by Supabase Auth and never stored or visible in plaintext, not even to database admins
+- **Supabase PostgreSQL** -- Cloud-hosted database with Row Level Security ensuring per-user data isolation
 
 ## Architecture
 
@@ -62,7 +63,7 @@ Crush your to-do list. A task tracking app with animated emojis, customizable th
 |  |                Lib Layer                            | |
 |  |  supabase/server.ts -- server Supabase client       | |
 |  |  supabase/client.ts -- browser Supabase client      | |
-|  |  supabase/middleware.ts -- session refresh helper    | |
+|  |  supabase/middleware.ts -- session refresh helper   | |
 |  |  emoji.ts   -- keyword -> emoji matching            | |
 |  +----------------------------+------------------------+ |
 +-------------------------------|--------------------------+
@@ -74,11 +75,11 @@ Crush your to-do list. A task tracking app with animated emojis, customizable th
 |  | auth.users|-->| task_lists  |-->|     tasks       |   |
 |  | (managed) |   |             |   |                 |   |
 |  | id (uuid) |   | id (uuid)   |   | id (uuid)       |   |
-|  | email     |   | name        |   | text             |   |
-|  | password  |   | user_id  FK |   | completed        |   |
-|  | ...       |   | created_at  |   | task_list_id FK  |   |
-|  +-----------+   | updated_at  |   | created_at       |   |
-|                  +-------------+   | updated_at       |   |
+|  | email     |   | name        |   | text            |   |
+|  | password  |   | user_id  FK |   | completed       |   |
+|  | ...       |   | created_at  |   | task_list_id FK |   |
+|  +-----------+   | updated_at  |   | created_at      |   |
+|                  +-------------+   | updated_at      |   |
 |                                    +-----------------+   |
 |  RLS: 8 policies enforce per-user data isolation         |
 |  Cascade deletes: auth.users -> task_lists -> tasks      |
