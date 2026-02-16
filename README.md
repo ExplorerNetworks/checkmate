@@ -97,6 +97,9 @@ Crush your to-do list. A secure auth, task tracking app with animated emojis, cu
 | Language | TypeScript |
 | Unit Tests | Vitest |
 | E2E Tests | Playwright (Chromium) |
+| CI/CD | GitHub Actions |
+| Hosting | Vercel |
+| Analytics | Vercel Speed Insights |
 
 ## Getting Started
 
@@ -141,7 +144,22 @@ npx vitest            # Unit tests in watch mode
 
 **E2E tests** (Playwright) cover full user flows -- registration, login, list CRUD, task CRUD, theme switching, and logout. Tests use the Supabase admin API (service role key) to create/cleanup test users, bypassing signup rate limits.
 
-E2E tests require a `.env.test` file with Supabase credentials and an optional `SUPABASE_SERVICE_ROLE_KEY` for test data cleanup.
+E2E tests require a `.env.test` file with Supabase credentials and an optional `SUPABASE_SERVICE_ROLE_KEY` for test data cleanup. Test cleanup is scoped to `@test.com` users only -- real user data is never touched.
+
+## CI/CD
+
+GitHub Actions runs on every push and PR to `main`:
+
+| Job | What it does |
+|-----|-------------|
+| **Lint** | ESLint checks |
+| **Unit Tests** | Vitest (14 tests) |
+| **E2E Tests** | Playwright against live Supabase (21 tests) |
+| **Publish Report** | Deploys Playwright HTML report to GitHub Pages |
+
+The Playwright test report is published to GitHub Pages after each run on `main`. E2E tests require three repository secrets: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
+
+The app is hosted on **Vercel** with **Vercel Speed Insights** for performance monitoring.
 
 ## Project Structure
 
@@ -173,9 +191,10 @@ checkmate/
 │       ├── ConfirmDialog.tsx    # Themed delete confirmation dialog
 │       ├── CreateListForm.tsx   # New list input
 │       └── CreateTaskForm.tsx   # New task input
+├── .github/workflows/ci.yml     # GitHub Actions CI pipeline
 ├── e2e/                         # Playwright E2E tests
-│   ├── global-setup.ts          # Pre-test cleanup
-│   ├── global-teardown.ts       # Post-test cleanup
+│   ├── global-setup.ts          # Pre-test cleanup (@test.com users only)
+│   ├── global-teardown.ts       # Post-test cleanup (@test.com users only)
 │   ├── helpers/auth.ts          # Shared register/login helpers
 │   ├── auth.spec.ts             # Auth flow tests
 │   ├── lists.spec.ts            # List CRUD tests

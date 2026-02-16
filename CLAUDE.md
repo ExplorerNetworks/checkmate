@@ -28,8 +28,10 @@ Required in `.env`:
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon (public) key
 
-Optional in `.env.test` for E2E cleanup:
-- `SUPABASE_SERVICE_ROLE_KEY` — Service role key (server-side only, never expose to browser)
+Required in `.env.test` for E2E tests:
+- `NEXT_PUBLIC_SUPABASE_URL` — Same as above
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Same as above
+- `SUPABASE_SERVICE_ROLE_KEY` — Service role key for admin API (test user creation/cleanup, never expose to browser)
 
 ## Architecture
 
@@ -82,8 +84,24 @@ All interactive components are client components (`"use client"`):
 - **TaskListCard / TaskItem** — Dashboard cards and task rows with inline editing
 - **CreateListForm / CreateTaskForm** — Input forms for creating lists and tasks
 
+### Testing
+
+- **Unit tests** (Vitest) — 14 tests covering emoji matching and animation assignment
+- **E2E tests** (Playwright) — 21 tests covering auth, list CRUD, task CRUD, theme switching
+- E2E tests use the Supabase admin API (service role key) to create test users, bypassing signup rate limits
+- Test cleanup (global-setup + global-teardown) is scoped to `@test.com` users only — real user data is never deleted
+- E2E test files are excluded from the Next.js TypeScript build via `tsconfig.json`
+
+### CI/CD
+
+- **GitHub Actions** (`.github/workflows/ci.yml`) runs lint, unit tests, and E2E tests on every push/PR to `main`
+- E2E tests require three GitHub repo secrets: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- Playwright HTML report is published to GitHub Pages after each `main` push
+- **Vercel** hosts the production app with **Vercel Speed Insights** (`@vercel/speed-insights`) added in `src/app/layout.tsx`
+
 ### TypeScript & Styling
 
 - Strict TypeScript with `@/*` path alias
 - MUI 7 + Emotion for component styling
 - Tailwind CSS v4 (via PostCSS plugin) for utility classes
+- `e2e/` directory is excluded from `tsconfig.json` to avoid build conflicts with Playwright files
