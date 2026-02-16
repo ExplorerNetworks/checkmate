@@ -1,6 +1,6 @@
-const { createClient } = require("@supabase/supabase-js");
+import { createClient } from "@supabase/supabase-js";
 
-module.exports = async function globalSetup() {
+export default async function globalSetup() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -35,4 +35,4 @@ module.exports = async function globalSetup() {
   }
 
   console.log("E2E test data cleaned up");
-};
+}

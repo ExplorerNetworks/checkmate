@@ -1,6 +1,6 @@
-const { createClient } = require("@supabase/supabase-js");
+import { createClient } from "@supabase/supabase-js";
 
-module.exports = async function globalTeardown() {
+export default async function globalTeardown() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -38,4 +38,4 @@ module.exports = async function globalTeardown() {
   console.log(
     `E2E teardown: cleaned up ${deletedCount} test user(s) and their data`
   );
-};
+}

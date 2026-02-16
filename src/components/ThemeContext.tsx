@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useMemo, useEffect } from "react";
+import { createContext, useContext, useState, useMemo, useSyncExternalStore } from "react";
 import { ThemeProvider as MuiThemeProvider, createTheme, CssBaseline, alpha } from "@mui/material";
 
 type Mode = "light" | "dark";
@@ -37,25 +37,24 @@ export function useThemeMode() {
 }
 
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = useState<Mode>("light");
-  const [colorTheme, setColorThemeState] = useState<ColorTheme>("blue");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const savedMode = localStorage.getItem("theme-mode") as Mode | null;
-    if (savedMode === "dark" || savedMode === "light") {
-      setMode(savedMode);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setMode("dark");
-    }
-
-    const savedColor = localStorage.getItem("color-theme") as ColorTheme | null;
-    if (savedColor && COLOR_THEMES.some((t) => t.id === savedColor)) {
-      setColorThemeState(savedColor);
-    }
-
-    setMounted(true);
-  }, []);
+  const [mode, setMode] = useState<Mode>(() => {
+    if (typeof window === "undefined") return "light";
+    const saved = localStorage.getItem("theme-mode") as Mode | null;
+    if (saved === "dark" || saved === "light") return saved;
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+    return "light";
+  });
+  const [colorTheme, setColorThemeState] = useState<ColorTheme>(() => {
+    if (typeof window === "undefined") return "blue";
+    const saved = localStorage.getItem("color-theme") as ColorTheme | null;
+    if (saved && COLOR_THEMES.some((t) => t.id === saved)) return saved;
+    return "blue";
+  });
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   function toggleMode() {
     setMode((prev) => {
