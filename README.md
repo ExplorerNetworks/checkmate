@@ -2,6 +2,8 @@
 
 Crush your to-do list. A secure auth, task tracking app with animated emojis, customizable themes, and multi-list support!
 
+[![CI](https://github.com/ExplorerNetworks/checkmate/actions/workflows/ci.yml/badge.svg)](https://github.com/ExplorerNetworks/checkmate/actions/workflows/ci.yml) [![Test Report](https://img.shields.io/badge/Test%20Report-GitHub%20Pages-blue)](https://explorernetworks.github.io/checkmate)
+
 ## Features
 
 - **Multi-list management** -- Create, rename, and delete task lists
